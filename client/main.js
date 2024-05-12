@@ -69,9 +69,11 @@ login.addEventListener("submit", async(e) => {
         else{
             const userData = await response.json();
             alert('Login successful');
-            window.location.href = '/';
+            window.location.href = '/home';
         }
     }catch(error){
         console.log('Login failed: ', error.message);
     }
 });
+
+
