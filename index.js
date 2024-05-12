@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const app = express();
 
 app.use(cors());
@@ -26,8 +27,8 @@ app.listen(3000, () => {
     console.log(`Server is running on port 3000`);
 });
 
-
-app.post('/register', (req, res) => {
+//for registration
+app.post('/auth/register', (req, res) => {
     const {username,email,password} = req.body;
     
     //check if the user already exist
@@ -48,14 +49,47 @@ app.post('/register', (req, res) => {
         db.query(insertQuery, [username,email,password], (err,result) => {
           if (err) {
             console.error('Error inserting user into database:', err);
-            return res.status(500).json({ error: 'Internal server error' });
-            
+            return res.status(500).json({ error: 'Internal server error' });          
           }
           console.log('User registered successfully');
           return res.status(200).json({ message: 'User registered successfully' });
         });
       }
-
-    });
-    
+    }); 
 });
+//
+
+//for login
+app.post('/auth/login', (req,res) => {
+
+    const {username,password} = req.body;
+    
+    //check if the user exist in the database
+    const query = 'SELECT * FROM user WHERE username = ?';
+    db.query(query, [username], (err,result) => {
+        
+        //server error
+        if(err){
+          console.error('Error querying database: ', err);
+          return res.status(500).json({error: 'Internal server error'});
+        }
+
+        //User not found
+        if(result.length === 0){
+          return res.status(404).json({error: 'User not found'});
+        }
+
+        //check if the password is correct
+        const user = result[0];
+        if(user.password !== password){
+          return res.status(401).json({error: 'Incorrect password'});
+        }
+        
+        //Password is correct, now generate JWT Token
+        const token = jwt.sign({username: user.username, email: user.email}, 'my_secret_key', {expiresIn: '1h'});
+
+        //Send the JWT token to the client
+        res.status(200).json({token});
+    })
+
+})
